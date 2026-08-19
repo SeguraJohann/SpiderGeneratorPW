@@ -71,6 +71,7 @@ class Interceptor:
     def _on_request(self, request):
         if not self._should_capture(request):
             return
+        print(f"[interceptor] request: {request.method} {request.url}")
         self._pending[id(request)] = datetime.now()
 
     def _on_request_finished(self, request):
@@ -83,10 +84,12 @@ class Interceptor:
 
         try:
             response = request.response()
-        except Exception:
+        except Exception as e:
+            print(f"[interceptor] error getting response: {e}")
             return
 
         if response is None:
+            print(f"[interceptor] response is None for {request.url}")
             return
 
         body = self._read_body(response)

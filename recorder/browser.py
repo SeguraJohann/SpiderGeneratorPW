@@ -31,12 +31,15 @@ class BrowserSession:
             if self._config.get("user_agent"):
                 context_args["user_agent"] = self._config["user_agent"]
 
+            browser.on("disconnected", lambda: done.set())
             context = browser.new_context(**context_args)
             page = context.new_page()
-            page.on("close", lambda: done.set())
+            page.on("close", lambda: print("[browser] page close event"))
             interceptor.attach(page)
+            print(f"[browser] navigating to {self._config['initial_url']}")
             page.goto(self._config["initial_url"])
+            print("[browser] waiting for session to end...")
             done.wait()
-            browser.close()
+            print("[browser] session ended")
 
         self._on_session_end(interceptor.records)
