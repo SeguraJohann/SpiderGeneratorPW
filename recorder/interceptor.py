@@ -27,12 +27,11 @@ class Interceptor:
         self._domain_scope = config["domain_scope"]
         self._origin_host = urlparse(config["initial_url"]).hostname or ""
         self.records = []
-        self._pending = {}
         self._index = 0
 
     def attach(self, page):
-        page.on("request", self._on_request)
         page.on("requestfinished", self._on_request_finished)
+        page.on("requestfailed", self._on_request_failed)
 
     def _allowed_resource_types(self):
         if "all" in self._scope:
@@ -68,33 +67,24 @@ class Interceptor:
 
         return True
 
-    def _on_request(self, request):
+    def _on_request_finished(self, request):
         if not self._should_capture(request):
             return
-        print(f"[interceptor] request: {request.method} {request.url}")
-        self._pending[id(request)] = datetime.now()
-
-    def _on_request_finished(self, request):
-        key = id(request)
-        if key not in self._pending:
-            return
-
-        started_at = self._pending.pop(key)
-        duration_ms = int((datetime.now() - started_at).total_seconds() * 1000)
 
         try:
             response = request.response()
         except Exception as e:
-            print(f"[interceptor] error getting response: {e}")
+            print(f"[interceptor] error getting response for {request.url}: {e}")
             return
 
         if response is None:
-            print(f"[interceptor] response is None for {request.url}")
             return
 
         body = self._read_body(response)
-
         self._index += 1
+
+        print(f"[interceptor] captured [{self._index:03}] {request.method} {request.url} → {response.status}")
+
         record = {
             "index": self._index,
             "method": request.method,
@@ -104,8 +94,8 @@ class Interceptor:
             "status": response.status,
             "response_headers": dict(response.headers),
             "response_body": body,
-            "timestamp": started_at.isoformat(),
-            "duration_ms": duration_ms,
+            "timestamp": datetime.now().isoformat(),
+            "duration_ms": None,
             "type": request.resource_type,
             "origin_page": request.frame.url if request.frame else None,
             "notes": [],
@@ -115,6 +105,11 @@ class Interceptor:
             "response_file": None,
         }
         self.records.append(record)
+
+    def _on_request_failed(self, request):
+        if not self._should_capture(request):
+            return
+        print(f"[interceptor] failed: {request.method} {request.url} — {request.failure}")
 
     def _read_body(self, response):
         try:
