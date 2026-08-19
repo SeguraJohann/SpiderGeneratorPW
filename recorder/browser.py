@@ -1,3 +1,4 @@
+import threading
 from playwright.sync_api import sync_playwright
 
 BROWSER_MAP = {
@@ -11,8 +12,16 @@ class BrowserSession:
     def __init__(self, config, on_session_end):
         self._config = config
         self._on_session_end = on_session_end
+        self._stop_event = threading.Event()
 
-    def start(self):
+    def stop(self):
+        self._stop_event.set()
+
+    def start_in_thread(self):
+        thread = threading.Thread(target=self._run, daemon=True)
+        thread.start()
+
+    def _run(self):
         from recorder.interceptor import Interceptor
 
         interceptor = Interceptor(self._config)
@@ -32,20 +41,10 @@ class BrowserSession:
             context = browser.new_context(**context_args)
             page = context.new_page()
             interceptor.attach(page)
-
-            print(f"[browser] navigating to {self._config['initial_url']}")
             page.goto(self._config["initial_url"])
 
-            print("[browser] waiting for session to end — close the browser window to finish.")
-            try:
-                page.wait_for_event("close", timeout=0)
-            except Exception:
-                pass
+            self._stop_event.wait()
 
-            print(f"[browser] session ended — {len(interceptor.records)} requests captured.")
-            try:
-                browser.close()
-            except Exception:
-                pass
+            browser.close()
 
         self._on_session_end(interceptor.records)
