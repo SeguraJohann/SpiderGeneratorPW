@@ -9,7 +9,14 @@ SCOPE_MAP = {
     "script": {"script"},
 }
 
-TEXT_TYPES = {"application/json", "text/html", "text/plain", "text/xml", "application/xml"}
+TEXT_TYPES = {
+    "application/json",
+    "text/html",
+    "text/plain",
+    "text/xml",
+    "application/xml",
+    "application/x-www-form-urlencoded",
+}
 
 
 class Interceptor:
@@ -25,11 +32,11 @@ class Interceptor:
 
     def attach(self, page):
         page.on("request", self._on_request)
-        page.on("response", self._on_response)
+        page.on("requestfinished", self._on_request_finished)
 
     def _allowed_resource_types(self):
         if "all" in self._scope:
-            return None  # None means no filtering
+            return None
         types = set()
         for key in self._scope:
             types |= SCOPE_MAP.get(key, set())
@@ -64,16 +71,23 @@ class Interceptor:
     def _on_request(self, request):
         if not self._should_capture(request):
             return
-        self._pending[id(request)] = (request, datetime.now())
+        self._pending[id(request)] = datetime.now()
 
-    def _on_response(self, response):
-        request = response.request
+    def _on_request_finished(self, request):
         key = id(request)
         if key not in self._pending:
             return
 
-        _, started_at = self._pending.pop(key)
+        started_at = self._pending.pop(key)
         duration_ms = int((datetime.now() - started_at).total_seconds() * 1000)
+
+        try:
+            response = request.response()
+        except Exception:
+            return
+
+        if response is None:
+            return
 
         body = self._read_body(response)
 

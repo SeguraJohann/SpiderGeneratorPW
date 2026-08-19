@@ -1,5 +1,5 @@
+import threading
 from playwright.sync_api import sync_playwright
-import time
 
 BROWSER_MAP = {
     "Chrome": "chromium",
@@ -19,6 +19,7 @@ class BrowserSession:
         interceptor = Interceptor(self._config)
         vp = self._config["viewport"]
         browser_key = BROWSER_MAP.get(self._config["browser"], "chromium")
+        done = threading.Event()
 
         with sync_playwright() as p:
             launcher = getattr(p, browser_key)
@@ -32,10 +33,10 @@ class BrowserSession:
 
             context = browser.new_context(**context_args)
             page = context.new_page()
+            page.on("close", lambda: done.set())
             interceptor.attach(page)
             page.goto(self._config["initial_url"])
-
-            while browser.is_connected():
-                time.sleep(0.5)
+            done.wait()
+            browser.close()
 
         self._on_session_end(interceptor.records)
