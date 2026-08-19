@@ -33,8 +33,9 @@ class BrowserSession:
 
             browser.on("disconnected", lambda: done.set())
             context = browser.new_context(**context_args)
+            context.on("close", lambda: done.set())
             page = context.new_page()
-            page.on("close", lambda: print("[browser] page close event"))
+            page.on("close", lambda: done.set())
             interceptor.attach(page)
             print(f"[browser] navigating to {self._config['initial_url']}")
             page.goto(self._config["initial_url"])

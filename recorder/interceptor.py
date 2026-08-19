@@ -61,7 +61,8 @@ class Interceptor:
             for pattern in NOISE_PATTERNS:
                 if pattern in url:
                     return False
-            path = parsed.path.lower()
+            from urllib.parse import unquote
+            path = unquote(parsed.path).lower()
             if any(path.endswith(ext) for ext in STATIC_EXTENSIONS):
                 return False
 
