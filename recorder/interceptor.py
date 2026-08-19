@@ -62,8 +62,8 @@ class Interceptor:
                 if pattern in url:
                     return False
             from urllib.parse import unquote
-            path = unquote(parsed.path).lower()
-            if any(path.endswith(ext) for ext in STATIC_EXTENSIONS):
+            clean_path = unquote(parsed.path).split("?")[0].lower()
+            if any(clean_path.endswith(ext) for ext in STATIC_EXTENSIONS):
                 return False
 
         return True
