@@ -207,7 +207,7 @@ class ConfigForm:
 
     def _build_viewport(self, parent, pad):
         row = tk.Frame(parent, bg="#f5f5f5")
-        row.pack(fill="x", padx=12, **pad)
+        row.pack(fill="x", padx=12, pady=6)
         tk.Label(row, text="Viewport", bg="#f5f5f5", width=16, anchor="w").pack(side="left")
         self.viewport_var = tk.StringVar(value=DEFAULT_VIEWPORT)
         ttk.Combobox(
@@ -217,7 +217,7 @@ class ConfigForm:
 
     def _build_user_agent(self, parent, pad):
         row = tk.Frame(parent, bg="#f5f5f5")
-        row.pack(fill="x", padx=12, **pad)
+        row.pack(fill="x", padx=12, pady=6)
         tk.Label(row, text="User agent", bg="#f5f5f5", width=16, anchor="w").pack(side="left")
         self.user_agent_var = tk.StringVar(value="")
         tk.Entry(row, textvariable=self.user_agent_var, width=36).pack(side="left")
