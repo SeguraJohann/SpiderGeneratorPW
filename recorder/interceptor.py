@@ -20,12 +20,13 @@ TEXT_TYPES = {
 
 
 class Interceptor:
-    def __init__(self, config):
+    def __init__(self, config, record_queue=None):
         self._config = config
         self._scope = config["capture_scope"]
         self._filter_noise = config["filter_noise"]
         self._domain_scope = config["domain_scope"]
         self._origin_host = urlparse(config["initial_url"]).hostname or ""
+        self._queue = record_queue
         self.records = []
         self._index = 0
 
@@ -106,6 +107,8 @@ class Interceptor:
             "response_file": None,
         }
         self.records.append(record)
+        if self._queue is not None:
+            self._queue.put(record)
 
     def _on_request_failed(self, request):
         if not self._should_capture(request):

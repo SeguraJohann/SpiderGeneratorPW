@@ -279,15 +279,30 @@ class ConfigForm:
         }
 
     def _on_config_ready(self, config):
+        import queue
         from recorder.browser import BrowserSession
+        from ui.annotation_panel import AnnotationPanel
 
-        self._session = BrowserSession(config, on_session_end=self._on_session_end)
-        self._session.start_in_thread()
-        # Phase 4: annotation panel will open here and call self._session.stop() on Finish
+        record_queue = queue.Queue()
+        session = BrowserSession(
+            config,
+            record_queue=record_queue,
+            on_session_end=lambda records: None,
+        )
+        session.start_in_thread()
+
+        panel = AnnotationPanel(
+            config,
+            session=session,
+            record_queue=record_queue,
+            on_finish=self._on_session_end,
+        )
+        panel.run()
 
     def _on_session_end(self, records):
-        print(f"Session ended. {len(records)} requests captured.")
-        for r in records:
+        requests = [r for r in records if r.get("type") != "session_note"]
+        print(f"Session ended. {len(requests)} requests captured.")
+        for r in requests:
             print(f"  [{r['index']:03}] {r['method']} {r['url']} → {r['status']}")
 
     # --- Helpers ---

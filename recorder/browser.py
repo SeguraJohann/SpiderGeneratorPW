@@ -9,8 +9,9 @@ BROWSER_MAP = {
 
 
 class BrowserSession:
-    def __init__(self, config, on_session_end):
+    def __init__(self, config, record_queue, on_session_end):
         self._config = config
+        self._queue = record_queue
         self._on_session_end = on_session_end
         self._stop_event = threading.Event()
 
@@ -24,7 +25,7 @@ class BrowserSession:
     def _run(self):
         from recorder.interceptor import Interceptor
 
-        interceptor = Interceptor(self._config)
+        interceptor = Interceptor(self._config, record_queue=self._queue)
         vp = self._config["viewport"]
         browser_key = BROWSER_MAP.get(self._config["browser"], "chromium")
 
