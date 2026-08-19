@@ -279,8 +279,15 @@ class ConfigForm:
         }
 
     def _on_config_ready(self, config):
-        # Phase 3 hook — browser will be launched here
-        print(config)
+        from recorder.browser import BrowserSession
+
+        session = BrowserSession(config, on_session_end=self._on_session_end)
+        session.start()
+
+    def _on_session_end(self, records):
+        print(f"Session ended. {len(records)} requests captured.")
+        for r in records:
+            print(f"  [{r['index']:03}] {r['method']} {r['url']} → {r['status']}")
 
     # --- Helpers ---
 
