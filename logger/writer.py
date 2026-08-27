@@ -25,6 +25,7 @@ def _write_log(records, session_dir):
         elif record.get("excluded"):
             continue
         else:
+            lines.append(f"# [{record['index']:03}]\n")
             lines.append(_format_curl(record))
             lines.append(_format_response_meta(record))
             for note in record.get("notes", []):

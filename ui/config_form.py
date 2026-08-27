@@ -5,8 +5,6 @@ from config.defaults import (
     OUTPUT_DIR,
     BROWSERS,
     DEFAULT_BROWSER,
-    VIEWPORTS,
-    DEFAULT_VIEWPORT,
 )
 
 
@@ -117,7 +115,6 @@ class ConfigForm:
         self._build_capture_scope(self._adv_frame, pad)
         self._build_domain_scope(self._adv_frame, pad)
         self._build_noise_filter(self._adv_frame, pad)
-        self._build_viewport(self._adv_frame, pad)
         self._build_user_agent(self._adv_frame, pad)
 
     def _toggle_advanced(self):
@@ -205,16 +202,6 @@ class ConfigForm:
             bg="#f5f5f5",
         ).pack(anchor="w")
 
-    def _build_viewport(self, parent, pad):
-        row = tk.Frame(parent, bg="#f5f5f5")
-        row.pack(fill="x", padx=12, pady=6)
-        tk.Label(row, text="Viewport", bg="#f5f5f5", width=16, anchor="w").pack(side="left")
-        self.viewport_var = tk.StringVar(value=DEFAULT_VIEWPORT)
-        ttk.Combobox(
-            row, textvariable=self.viewport_var, values=VIEWPORTS,
-            state="readonly", width=20,
-        ).pack(side="left")
-
     def _build_user_agent(self, parent, pad):
         row = tk.Frame(parent, bg="#f5f5f5")
         row.pack(fill="x", padx=12, pady=6)
@@ -259,8 +246,6 @@ class ConfigForm:
         else:
             scope = [k for k, v in self._scope_checks.items() if v.get()]
 
-        vp = self.viewport_var.get().split("x")
-
         return {
             "source_name": self.source_name.get().strip(),
             "initial_url": self.initial_url.get().strip(),
@@ -274,7 +259,6 @@ class ConfigForm:
             "capture_scope": scope,
             "domain_scope": self.domain_scope_var.get(),
             "filter_noise": self.noise_filter_var.get(),
-            "viewport": {"width": int(vp[0]), "height": int(vp[1])},
             "user_agent": self.user_agent_var.get().strip() or None,
         }
 

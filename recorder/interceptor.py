@@ -29,9 +29,11 @@ class Interceptor:
         self._queue = record_queue
         self.records = []
         self._index = 0
+        self._pending = {}
 
     def attach(self, page):
         page.on("response", self._on_response)
+        page.on("requestfinished", self._on_request_finished)
         page.on("requestfailed", self._on_request_failed)
 
     def _allowed_resource_types(self):
@@ -74,10 +76,6 @@ class Interceptor:
         if not self._should_capture(request):
             return
 
-        body = None
-        if not (300 <= response.status < 400):
-            body = self._read_body(response)
-
         self._index += 1
 
         print(f"[interceptor] captured [{self._index:03}] {request.method} {request.url} → {response.status}")
@@ -90,7 +88,7 @@ class Interceptor:
             "payload": request.post_data,
             "status": response.status,
             "response_headers": dict(response.headers),
-            "response_body": body,
+            "response_body": None,
             "timestamp": datetime.now().isoformat(),
             "duration_ms": None,
             "type": request.resource_type,
@@ -102,20 +100,30 @@ class Interceptor:
             "response_file": None,
         }
         self.records.append(record)
+        self._pending[id(request)] = record
         if self._queue is not None:
             self._queue.put(record)
 
-    def _on_request_failed(self, request):
-        if not self._should_capture(request):
+    def _on_request_finished(self, request):
+        record = self._pending.pop(id(request), None)
+        if record is None:
             return
-        print(f"[interceptor] failed: {request.method} {request.url} — {request.failure}")
 
-    def _read_body(self, response):
         try:
+            response = request.response()
+            if response is None:
+                return
+            if 300 <= record["status"] < 400:
+                return
             content_type = response.headers.get("content-type", "")
             base_type = content_type.split(";")[0].strip()
             if base_type in TEXT_TYPES:
-                return response.text()
-        except Exception:
-            pass
-        return None
+                record["response_body"] = response.text()
+        except Exception as e:
+            print(f"[interceptor] body read error for {request.url}: {e}")
+
+    def _on_request_failed(self, request):
+        self._pending.pop(id(request), None)
+        if not self._should_capture(request):
+            return
+        print(f"[interceptor] failed: {request.method} {request.url} — {request.failure}")

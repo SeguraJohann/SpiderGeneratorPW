@@ -31,10 +31,10 @@ class BrowserSession:
 
         with sync_playwright() as p:
             launcher = getattr(p, browser_key)
-            browser = launcher.launch(headless=False)
+            browser = launcher.launch(headless=False, args=["--start-maximized"])
 
             context_args = {
-                "viewport": {"width": vp["width"], "height": vp["height"]},
+                "viewport": None,
             }
             if self._config.get("user_agent"):
                 context_args["user_agent"] = self._config["user_agent"]
