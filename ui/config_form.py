@@ -283,6 +283,7 @@ class ConfigForm:
         from recorder.browser import BrowserSession
         from ui.annotation_panel import AnnotationPanel
 
+        self._last_config = config
         record_queue = queue.Queue()
         session = BrowserSession(
             config,
@@ -300,10 +301,8 @@ class ConfigForm:
         panel.run()
 
     def _on_session_end(self, records):
-        requests = [r for r in records if r.get("type") != "session_note"]
-        print(f"Session ended. {len(requests)} requests captured.")
-        for r in requests:
-            print(f"  [{r['index']:03}] {r['method']} {r['url']} → {r['status']}")
+        from logger.writer import write_session
+        write_session(records, self._last_config)
 
     # --- Helpers ---
 
