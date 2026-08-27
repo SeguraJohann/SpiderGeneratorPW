@@ -26,7 +26,6 @@ class BrowserSession:
         from recorder.interceptor import Interceptor
 
         interceptor = Interceptor(self._config, record_queue=self._queue)
-        vp = self._config["viewport"]
         browser_key = BROWSER_MAP.get(self._config["browser"], "chromium")
 
         with sync_playwright() as p:
