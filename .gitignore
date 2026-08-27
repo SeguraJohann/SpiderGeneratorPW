@@ -58,5 +58,8 @@ Thumbs.db
 # Logs
 *.log
 
+# Output
+output/
+
 # Claude Code
 CLAUDE.md
