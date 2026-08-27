@@ -21,8 +21,8 @@ class ConfigForm:
 
     def _center_window(self):
         self.root.update_idletasks()
-        w = self.root.winfo_width()
-        h = self.root.winfo_height()
+        w = self.root.winfo_reqwidth()
+        h = self.root.winfo_reqheight()
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()
         self.root.geometry(f"{w}x{h}+{(sw - w) // 2}+{(sh - h) // 2}")
@@ -138,9 +138,9 @@ class ConfigForm:
         frame = tk.Frame(parent, bg="#f5f5f5")
         frame.pack(fill="x", padx=24, pady=(0, 4))
 
-        self.scope_all = tk.BooleanVar(value=True)
-        self.scope_fetch_xhr = tk.BooleanVar(value=False)
-        self.scope_document = tk.BooleanVar(value=False)
+        self.scope_all = tk.BooleanVar(value=False)
+        self.scope_fetch_xhr = tk.BooleanVar(value=True)
+        self.scope_document = tk.BooleanVar(value=True)
         self.scope_script = tk.BooleanVar(value=False)
 
         self._scope_checks = {

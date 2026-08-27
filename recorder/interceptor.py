@@ -31,7 +31,7 @@ class Interceptor:
         self._index = 0
 
     def attach(self, page):
-        page.on("requestfinished", self._on_request_finished)
+        page.on("response", self._on_response)
         page.on("requestfailed", self._on_request_failed)
 
     def _allowed_resource_types(self):
@@ -69,20 +69,15 @@ class Interceptor:
 
         return True
 
-    def _on_request_finished(self, request):
+    def _on_response(self, response):
+        request = response.request
         if not self._should_capture(request):
             return
 
-        try:
-            response = request.response()
-        except Exception as e:
-            print(f"[interceptor] error getting response for {request.url}: {e}")
-            return
+        body = None
+        if not (300 <= response.status < 400):
+            body = self._read_body(response)
 
-        if response is None:
-            return
-
-        body = self._read_body(response)
         self._index += 1
 
         print(f"[interceptor] captured [{self._index:03}] {request.method} {request.url} → {response.status}")

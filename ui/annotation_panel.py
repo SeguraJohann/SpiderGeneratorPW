@@ -14,7 +14,7 @@ class AnnotationPanel:
 
         self._root = tk.Tk()
         self._root.title(f"Annotation Panel — {config['source_name']}")
-        self._root.geometry("700x500")
+        self._root.geometry("700x580")
         self._root.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._build_ui()
@@ -22,8 +22,8 @@ class AnnotationPanel:
 
     def _center_window(self):
         self._root.update_idletasks()
-        w = self._root.winfo_width()
-        h = self._root.winfo_height()
+        w = self._root.winfo_reqwidth()
+        h = self._root.winfo_reqheight()
         sw = self._root.winfo_screenwidth()
         sh = self._root.winfo_screenheight()
         self._root.geometry(f"{w}x{h}+{(sw - w) // 2}+{(sh - h) // 2}")
@@ -72,6 +72,20 @@ class AnnotationPanel:
         )
         self._btn_exclude.pack(side="left", padx=4)
 
+        # Notes display for selected request
+        notes_frame = tk.Frame(self._root, bg=bg)
+        notes_frame.pack(fill="x", padx=12, pady=(0, 4))
+
+        tk.Label(notes_frame, text="Notes:", bg=bg,
+                 font=("Helvetica", 9, "bold"), anchor="w").pack(fill="x")
+
+        self._notes_text = tk.Text(
+            notes_frame, height=3, font=("Helvetica", 9),
+            state="disabled", bg="#ebebeb", relief="flat",
+            wrap="word",
+        )
+        self._notes_text.pack(fill="x")
+
         ttk.Separator(self._root, orient="horizontal").pack(fill="x", padx=12, pady=4)
 
         # Session note
@@ -114,15 +128,29 @@ class AnnotationPanel:
                 record = self._queue.get_nowait()
                 self._records.append(record)
                 self._add_listbox_entry(record)
-                self._counter_var.set(f"{len(self._records)} requests captured")
+                req_count = sum(1 for r in self._records if r.get("type") != "session_note")
+                self._counter_var.set(f"{req_count} requests captured")
         except queue.Empty:
             pass
-        self._root.after(300, self._poll_queue)
+        except Exception as e:
+            print(f"[annotation_panel] poll error: {e}")
+        finally:
+            self._root.after(300, self._poll_queue)
+
+    def _make_label(self, record):
+        note_marker = " [*]" if record.get("notes") else ""
+        return f"[{record['index']:03}] {record['method']:<6} {record['status']}  {record['url']}{note_marker}"
 
     def _add_listbox_entry(self, record):
-        label = f"[{record['index']:03}] {record['method']:<6} {record['status']}  {record['url']}"
-        self._listbox.insert("end", label)
+        self._listbox.insert("end", self._make_label(record))
         self._listbox.see("end")
+
+    def _refresh_listbox_entry(self, idx):
+        record = self._records[idx]
+        self._listbox.delete(idx)
+        self._listbox.insert(idx, self._make_label(record))
+        if record.get("excluded"):
+            self._listbox.itemconfig(idx, fg="#aaaaaa", selectforeground="#aaaaaa")
 
     # --- Selection ---
 
@@ -132,11 +160,27 @@ class AnnotationPanel:
             return
         self._selected_index = sel[0]
         record = self._records[self._selected_index]
+
+        if record.get("type") == "session_note":
+            self._btn_note.config(state="disabled")
+            self._btn_exclude.config(state="disabled")
+            self._update_notes_display([])
+            return
+
         self._btn_note.config(state="normal")
         self._btn_exclude.config(
             state="normal",
             text="Include" if record.get("excluded") else "Exclude",
         )
+        self._update_notes_display(record.get("notes", []))
+
+    def _update_notes_display(self, notes):
+        self._notes_text.config(state="normal")
+        self._notes_text.delete("1.0", "end")
+        if notes:
+            for i, note in enumerate(notes, 1):
+                self._notes_text.insert("end", f"{i}. {note}\n")
+        self._notes_text.config(state="disabled")
 
     # --- Request actions ---
 
@@ -148,6 +192,8 @@ class AnnotationPanel:
         )
         if note and note.strip():
             self._records[self._selected_index]["notes"].append(note.strip())
+            self._refresh_listbox_entry(self._selected_index)
+            self._update_notes_display(self._records[self._selected_index]["notes"])
 
     def _toggle_exclude(self):
         if self._selected_index is None:
@@ -155,7 +201,6 @@ class AnnotationPanel:
         record = self._records[self._selected_index]
         record["excluded"] = not record.get("excluded", False)
         self._btn_exclude.config(text="Include" if record["excluded"] else "Exclude")
-        label = self._listbox.get(self._selected_index)
         if record["excluded"]:
             self._listbox.itemconfig(self._selected_index, fg="#aaaaaa", selectforeground="#aaaaaa")
         else:

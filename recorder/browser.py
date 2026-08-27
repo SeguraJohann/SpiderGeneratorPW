@@ -44,7 +44,8 @@ class BrowserSession:
             interceptor.attach(page)
             page.goto(self._config["initial_url"])
 
-            self._stop_event.wait()
+            while not self._stop_event.is_set():
+                page.wait_for_timeout(200)
 
             browser.close()
 
