@@ -115,6 +115,7 @@ class ConfigForm:
         self._build_capture_scope(self._adv_frame, pad)
         self._build_domain_scope(self._adv_frame, pad)
         self._build_noise_filter(self._adv_frame, pad)
+        self._build_response_body_mode(self._adv_frame, pad)
         self._build_user_agent(self._adv_frame, pad)
 
     def _toggle_advanced(self):
@@ -202,6 +203,23 @@ class ConfigForm:
             bg="#f5f5f5",
         ).pack(anchor="w")
 
+    def _build_response_body_mode(self, parent, pad):
+        tk.Label(parent, text="Save response body", bg="#f5f5f5", anchor="w").pack(
+            fill="x", padx=12, pady=(8, 2)
+        )
+        frame = tk.Frame(parent, bg="#f5f5f5")
+        frame.pack(fill="x", padx=24, pady=(0, 4))
+
+        self.response_body_mode_var = tk.StringVar(value="text")
+        tk.Radiobutton(
+            frame, text="Common text types  (JSON, HTML, XML, plain text)",
+            variable=self.response_body_mode_var, value="text", bg="#f5f5f5",
+        ).pack(anchor="w")
+        tk.Radiobutton(
+            frame, text="All text  (any text/* or application/* content-type)",
+            variable=self.response_body_mode_var, value="all_text", bg="#f5f5f5",
+        ).pack(anchor="w")
+
     def _build_user_agent(self, parent, pad):
         row = tk.Frame(parent, bg="#f5f5f5")
         row.pack(fill="x", padx=12, pady=6)
@@ -259,6 +277,7 @@ class ConfigForm:
             "capture_scope": scope,
             "domain_scope": self.domain_scope_var.get(),
             "filter_noise": self.noise_filter_var.get(),
+            "response_body_mode": self.response_body_mode_var.get(),
             "user_agent": self.user_agent_var.get().strip() or None,
         }
 

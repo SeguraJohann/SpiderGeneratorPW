@@ -25,6 +25,7 @@ class Interceptor:
         self._scope = config["capture_scope"]
         self._filter_noise = config["filter_noise"]
         self._domain_scope = config["domain_scope"]
+        self._response_body_mode = config.get("response_body_mode", "text")
         self._origin_host = urlparse(config["initial_url"]).hostname or ""
         self._queue = record_queue
         self.records = []
@@ -117,7 +118,11 @@ class Interceptor:
                 return
             content_type = response.headers.get("content-type", "")
             base_type = content_type.split(";")[0].strip()
-            if base_type in TEXT_TYPES:
+            if self._response_body_mode == "all_text":
+                readable = base_type.startswith("text/") or base_type.startswith("application/")
+            else:
+                readable = base_type in TEXT_TYPES
+            if readable:
                 record["response_body"] = response.text()
         except Exception as e:
             print(f"[interceptor] body read error for {request.url}: {e}")
