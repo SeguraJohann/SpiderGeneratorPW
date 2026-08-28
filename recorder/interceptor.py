@@ -48,6 +48,7 @@ class Interceptor:
     def _should_capture(self, request):
         allowed = self._allowed_resource_types()
         if allowed is not None and request.resource_type not in allowed:
+            print(f"[interceptor] SKIP (scope): type={request.resource_type} url={request.url}")
             return False
 
         url = request.url
@@ -56,24 +57,41 @@ class Interceptor:
 
         if self._domain_scope == "main":
             if host != self._origin_host:
+                print(f"[interceptor] SKIP (domain): host={host} != origin={self._origin_host}  url={url}")
                 return False
         elif self._domain_scope == "subdomains":
             if not (host == self._origin_host or host.endswith(f".{self._origin_host}")):
+                print(f"[interceptor] SKIP (subdomain): host={host}  url={url}")
                 return False
+        # "all" → no domain filtering
 
         if self._filter_noise:
             for pattern in NOISE_PATTERNS:
                 if pattern in url:
+                    print(f"[interceptor] SKIP (noise pattern={pattern}): url={url}")
                     return False
             from urllib.parse import unquote
             clean_path = unquote(parsed.path).split("?")[0].lower()
             if any(clean_path.endswith(ext) for ext in STATIC_EXTENSIONS):
+                print(f"[interceptor] SKIP (static ext): url={url}")
                 return False
 
         return True
 
+    def _safe_post_data(self, request):
+        try:
+            return request.post_data
+        except Exception:
+            pass
+        try:
+            buf = request.post_data_buffer
+            return buf.decode("utf-8", errors="replace") if buf else None
+        except Exception:
+            return None
+
     def _on_response(self, response):
         request = response.request
+        print(f"[interceptor] RAW response: {request.method} {request.url} (type={request.resource_type})")
         if not self._should_capture(request):
             return
 
@@ -86,7 +104,7 @@ class Interceptor:
             "method": request.method,
             "url": request.url,
             "request_headers": dict(request.headers),
-            "payload": request.post_data,
+            "payload": self._safe_post_data(request),
             "status": response.status,
             "response_headers": dict(response.headers),
             "response_body": None,

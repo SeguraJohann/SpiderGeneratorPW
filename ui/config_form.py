@@ -182,7 +182,7 @@ class ConfigForm:
         frame = tk.Frame(parent, bg="#f5f5f5")
         frame.pack(fill="x", padx=24, pady=(0, 4))
 
-        self.domain_scope_var = tk.StringVar(value="main")
+        self.domain_scope_var = tk.StringVar(value="all")
         tk.Radiobutton(
             frame, text="Main domain only", variable=self.domain_scope_var,
             value="main", bg="#f5f5f5",
@@ -190,6 +190,10 @@ class ConfigForm:
         tk.Radiobutton(
             frame, text="Include subdomains", variable=self.domain_scope_var,
             value="subdomains", bg="#f5f5f5",
+        ).pack(anchor="w")
+        tk.Radiobutton(
+            frame, text="All domains", variable=self.domain_scope_var,
+            value="all", bg="#f5f5f5",
         ).pack(anchor="w")
 
     def _build_noise_filter(self, parent, pad):
